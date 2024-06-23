@@ -1,4 +1,4 @@
-const { dataTypeConvert } = require("./dataTypeConvert");
+const { dataTypeConvert,getType } = require("./dataTypeConvert");
 const fs = require("fs");
 
 function dataModelGen(swaggerData, modelDir) {
@@ -21,29 +21,32 @@ function dataModelGen(swaggerData, modelDir) {
                     type = propertyValue['$ref'].split('/').pop();
                     fileContent = `import {${type}} from './${type}';\r\n${fileContent}`;
                 } else if (type == 'array') {
-                    if (Object.prototype.hasOwnProperty.call(propertyValue.items, '$ref')) {
-                        type = propertyValue.items['$ref'].split('/').pop();
+                    type =dataTypeConvert(getType(propertyValue.items))
+                    if (type != dtoName) {
                         fileContent = `import {${type}} from './${type}';\r\n${fileContent}`;
-                        type = `Array<${type}>`;
-                    } else {
-                        type = `Array<${dataTypeConvert(propertyValue.items.type)}>`;
                     }
+                    type = `Array<${type}>`;
                 }
-                fileContent += `  ${propertyName}: ${dataTypeConvert(type)};\r\n`;
+                fileContent += `  ${propertyName}?: ${dataTypeConvert(type)} | null;\r\n`;
             }
             fileContent += "}";
             fs.writeFileSync(filePath, fileContent);
         } else {
             var fileContent = `export default enum ${dtoName}{\r\n`;
-            var menuData = JSON.parse(element.description);
-            for (const menuName in menuData) {
-                if (Object.prototype.hasOwnProperty.call(menuData, menuName)) {
-                    const element = menuData[menuName];
-                    fileContent += `  ${menuName} = ${element},\r\n`;
+            try {
+                var menuData = JSON.parse(element.description);
+                for (const menuName in menuData) {
+                    if (Object.prototype.hasOwnProperty.call(menuData, menuName)) {
+                        const element = menuData[menuName];
+                        fileContent += `  ${menuName} = ${element},\r\n`;
+                    }
                 }
+                fileContent += "}";
+                fs.writeFileSync(filePath, fileContent);
+            } catch (error) {
+                console.log(error)
+                return;
             }
-            fileContent += "}";
-            fs.writeFileSync(filePath, fileContent);
         }
     }
     console.log("Data Model Generated Successfully!");

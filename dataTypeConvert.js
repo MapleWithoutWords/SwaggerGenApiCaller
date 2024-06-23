@@ -14,7 +14,7 @@ function dataTypeConvert(dataType) {
 function getType(schema) {
     if (schema.hasOwnProperty('type')) {
         if (schema.type == 'array') {
-            return `:Array<${getType(schema.items)}>`;
+            return `Array<${getType(schema.items)}>`;
         }
         return dataTypeConvert(schema.type);
     }

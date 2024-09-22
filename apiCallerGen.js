@@ -41,8 +41,8 @@ function apiCallerGen(swaggerData, outputDir) {
                 var requestBody = elvalue.requestBody;
                 var dataType = getType(requestBody.content['application/json'].schema);
                 requestDataStr = `data:${dataType}`;
-                if (!isBasicType(dataType)) {
-                    var modelName = dataType.split('<').pop().split('>').shift();
+                var modelName = dataType.split('<').pop().split('>').shift();
+                if (!isBasicType(modelName)) {
                     if (!apiFileImportList[fileName].includes(modelName)) {
                         apiFileImportList[fileName].push(modelName);
                     }
@@ -69,8 +69,8 @@ function apiCallerGen(swaggerData, outputDir) {
                         var responseType = getType(responses['200'].content['application/json'].schema);
                         functionString += `:Promise<${responseType}>{\r\n`;
 
-                        if (!isBasicType(responseType)) {
-                            var modelName = responseType.split('<').pop().split('>').shift();
+                        var modelName = responseType.split('<').pop().split('>').shift();
+                        if (!isBasicType(modelName)) {
                             if (!apiFileImportList[fileName].includes(modelName)) {
                                 apiFileImportList[fileName].push(modelName);
                             }
@@ -99,7 +99,7 @@ function apiCallerGen(swaggerData, outputDir) {
             continue;
         }
         if (apiFileImportList.hasOwnProperty(fileName) && apiFileImportList[fileName].length > 0) {
-            apiFileList[fileName] = `import { ${apiFileImportList[fileName].join(',')}} from './models/data-contracts;'\r\n` + apiFileList[fileName];
+            apiFileList[fileName] = `import { ${apiFileImportList[fileName].join(',')}} from './models/data-contracts'\r\n` + apiFileList[fileName];
         }
         apiFileList[fileName] = `import instance from "@/plugins/axios";\r\n` + apiFileList[fileName] + "}";
         fs.writeFileSync(`${outputDir}/${fileName}.ts`, apiFileList[fileName]);

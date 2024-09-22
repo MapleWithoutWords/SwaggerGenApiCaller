@@ -1,54 +1,49 @@
-const { dataTypeConvert,getType } = require("./dataTypeConvert");
+const { dataTypeConvert, getType, isBasicType } = require("./dataTypeConvert");
 const fs = require("fs");
 
 function dataModelGen(swaggerData, modelDir) {
+    var fileContentStringBuilder = "";
     for (const dtoName in swaggerData.components.schemas) {
-        if (!Object.prototype.hasOwnProperty.call(swaggerData.components.schemas, dtoName)) {
-            continue;
-        }
-
         const element = swaggerData.components.schemas[dtoName];
-        var filePath = `${modelDir}/${dtoName}.ts`;
-        if (Object.prototype.hasOwnProperty.call(element, "properties")) {
-            var fileContent = `export default class ${dtoName}{\r\n`;
+
+        if (element.hasOwnProperty("properties")) {
+            fileContentStringBuilder += `export class ${dtoName}{\r\n`;
             for (const propertyName in element.properties) {
-                if (!Object.prototype.hasOwnProperty.call(element.properties, propertyName)) {
+                if (!element.properties.hasOwnProperty(propertyName)) {
                     continue;
                 }
                 const propertyValue = element.properties[propertyName];
                 var type = propertyValue.type;
-                if (Object.prototype.hasOwnProperty.call(propertyValue, '$ref')) {
+                if (propertyValue.hasOwnProperty('$ref')) {
                     type = propertyValue['$ref'].split('/').pop();
-                    fileContent = `import {${type}} from './${type}';\r\n${fileContent}`;
                 } else if (type == 'array') {
-                    type =dataTypeConvert(getType(propertyValue.items))
-                    if (type != dtoName) {
-                        fileContent = `import {${type}} from './${type}';\r\n${fileContent}`;
-                    }
+                    type = getType(propertyValue.items)
                     type = `Array<${type}>`;
                 }
-                fileContent += `  ${propertyName}?: ${dataTypeConvert(type)} | null;\r\n`;
+                var dataTypeObj = dataTypeConvert(type, propertyValue.format);
+                fileContentStringBuilder += `  ${propertyName}${dataTypeObj.defaultValue ? '' : '?'}: ${dataTypeObj.type}${dataTypeObj.defaultValue ? `=${dataTypeObj.defaultValue}` : ''};\r\n`;
             }
-            fileContent += "}";
-            fs.writeFileSync(filePath, fileContent);
+            fileContentStringBuilder += "}\r\n";
+
         } else {
-            var fileContent = `export default enum ${dtoName}{\r\n`;
+            fileContentStringBuilder += `export enum ${dtoName}{\r\n`;
             try {
                 var menuData = JSON.parse(element.description);
                 for (const menuName in menuData) {
-                    if (Object.prototype.hasOwnProperty.call(menuData, menuName)) {
+                    if (menuData.hasOwnProperty(menuName)) {
                         const element = menuData[menuName];
-                        fileContent += `  ${menuName} = ${element},\r\n`;
+                        fileContentStringBuilder += `  ${menuName} = ${element},\r\n`;
                     }
                 }
-                fileContent += "}";
-                fs.writeFileSync(filePath, fileContent);
+                fileContentStringBuilder += "}\r\n";
             } catch (error) {
                 console.log(error)
                 return;
             }
         }
     }
+    var filePath = `${modelDir}/data-contracts.ts`;
+    fs.writeFileSync(filePath, fileContentStringBuilder);
     console.log("Data Model Generated Successfully!");
 }
 

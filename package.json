@@ -1,6 +1,6 @@
 {
   "name": "swagger-gen-api-caller",
-  "version": "1.0.3",
+  "version": "1.0.11",
   "description": "Generate api calls according to swagger",
   "main": "index.js",
   "scripts": {

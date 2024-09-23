@@ -19,6 +19,8 @@ function dataModelGen(swaggerData, modelDir) {
                 } else if (type == 'array') {
                     type = getType(propertyValue.items)
                     type = `Array<${type}>`;
+                } else if (type == 'object') {
+                    type = `Record<string,${propertyValue?.additionalProperties?.type??'object'}>`;
                 }
                 var dataTypeObj = dataTypeConvert(type, propertyValue.format);
                 fileContentStringBuilder += `  ${propertyName}${dataTypeObj.defaultValue ? '' : '?'}: ${dataTypeObj.type}${dataTypeObj.defaultValue ? `=${dataTypeObj.defaultValue}` : ''};\r\n`;

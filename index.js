@@ -7,7 +7,7 @@ const { dataModelGen } = require("./dataModelGen");
 const { apiCallerGen } = require("./apiCallerGen");
 
 program
-  .version("1.0.13")
+  .version("1.0.16")
   .description("A simple CLI to greet users")
   .option("-su, --swaggerUrl <type>", "swagger url to greet")
   .option("-o, --output <type>", "output directory")

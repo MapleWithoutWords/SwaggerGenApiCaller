@@ -31,7 +31,7 @@ function apiCallerGen(swaggerData, outputDir) {
                         apiUrlItem = apiUrlItem.replace(`\${${queryParameter.name}}`, `{${queryParameter.name}}`).replace(`{${queryParameter.name}}`, '${' + queryParameter.name + '}');
                         actionName = actionName.replace(`/{${queryParameter.name}}`, `${queryParameter.name}`).replace(`{${queryParameter.name}}`, `${queryParameter.name}`);
                     } else if (queryParameter.in === "query") {
-                        queryParams.push(`${queryParameter.name}:${datatype}`)
+                        queryParams.push(`${queryParameter.name}?:${datatype}`)
                     }
                 }
             }

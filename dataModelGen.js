@@ -3,21 +3,22 @@ const fs = require("fs");
 
 function dataModelGen(swaggerData, modelDir) {
 
-    var fileContentObject=[];
+    var fileContentObject = [];
 
     for (const dtoName in swaggerData.components.schemas) {
         var element = swaggerData.components.schemas[dtoName];
         var fileContentStringBuilder = "";
-        var order=1;
+        var order = 1;
 
         if (element.hasOwnProperty("properties") || element.hasOwnProperty('allOf')) {
 
-            if (element.hasOwnProperty('allOf')&&element['allOf'].length>=2) {
-                fileContentStringBuilder += `export class ${dtoName} extends ${getType(element['allOf'][0])}{\r\n`;
-                element=element['allOf'][1]
-                order++;
-            }else{
-                fileContentStringBuilder += `export class ${dtoName}{\r\n`;
+            if (element.hasOwnProperty('allOf') && element['allOf'].length >= 2) {
+                fileContentStringBuilder += `export type ${dtoName} = ${getType(element['allOf'][0])} & {\r\n`;
+                element = element['allOf'][1]
+                console.log(element)
+                order += element['allOf']?.length??1;
+            } else {
+                fileContentStringBuilder += `export type ${dtoName} = {\r\n`;
             }
 
             if (element.properties) {
@@ -29,15 +30,20 @@ function dataModelGen(swaggerData, modelDir) {
                     var type = getType(propertyValue);
                     if (type == 'object') {
                         type = `Record<string, ${propertyValue?.additionalProperties?.type ?? 'object'}>`;
+                        // order++;
+                    }
+                    if (!isBasicType(type) && type !== 'Array<string>') {
+                        order++;
                     }
                     var dataTypeObj = dataTypeConvert(type, propertyValue.format);
-                    fileContentStringBuilder += `  ${propertyName}${dataTypeObj.defaultValue ? '' : '?'}: ${dataTypeObj.type}${dataTypeObj.defaultValue ? `=${dataTypeObj.defaultValue}` : ''};\r\n`;
+                    fileContentStringBuilder += `  ${propertyName}${propertyName.endsWith('Id') || !dataTypeObj.defaultValue ? '?' : ''}: ${dataTypeObj.type};\r\n`;
                 }
             }
             fileContentStringBuilder += "}\r\n";
 
         } else {
-            fileContentStringBuilder += `export enum ${dtoName}{\r\n`;
+            order = 0;
+            fileContentStringBuilder += `export enum ${dtoName} {\r\n`;
             try {
                 var menuData = JSON.parse(element.description);
                 for (const menuName in menuData) {
@@ -48,18 +54,19 @@ function dataModelGen(swaggerData, modelDir) {
                 }
                 fileContentStringBuilder += "}\r\n";
             } catch (error) {
+                console.log(element, dtoName)
                 console.log(error)
                 return;
             }
         }
 
-        fileContentObject.push({order:order,content:fileContentStringBuilder})
+        fileContentObject.push({ order: order, content: fileContentStringBuilder })
     }
     var filePath = `${modelDir}/data-contracts.ts`;
 
-    var fileContent='';
+    var fileContent = '';
     for (const element of fileContentObject.sort((a, b) => a.order - b.order)) {
-        fileContent+=element.content;
+        fileContent += element.content;
     }
 
     fs.writeFileSync(filePath, fileContent);

@@ -1,4 +1,7 @@
 function dataTypeConvert(dataType, format = null) {
+  // if (!dataType){
+  //   return { type: "any", defaultValue: null };
+  // }
   if (dataType == "integer") {
     if (format == "int64") {
       return { type: "string", defaultValue: "'0'" };
@@ -29,17 +32,25 @@ function dataTypeConvert(dataType, format = null) {
 function getType(schema) {
   if (schema.hasOwnProperty('type')) {
     if (schema.type == 'array') {
+      if(schema.items.oneOf){
+        return `Array<${getType(schema.items.oneOf[0])}>`;
+      }
       return `Array<${getType(schema.items)}>`;
     }
-    return dataTypeConvert(schema.type, schema.format).type;
+    var type = dataTypeConvert(schema.type, schema.format).type
+    return type;
   }
   if (schema.hasOwnProperty('$ref')) {
     return schema['$ref'].split('/').pop();
   }
+  
+  if(schema?.oneOf){
+    return schema.oneOf.map(e=>e['$ref'].split('/').pop()).join('|');
+  }
 }
 
 function isBasicType(type) {
-  return ["string", "number", "boolean", "object", "array"].includes(type);
+  return ["string", "number", "boolean", "object", "array", "Date","any"].includes(type);
 }
 
 module.exports = {

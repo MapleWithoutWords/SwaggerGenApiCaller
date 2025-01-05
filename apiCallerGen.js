@@ -14,7 +14,7 @@ function apiCallerGen(swaggerData, outputDir) {
             var fileName = elvalue.tags[0];
 
             if (!apiFileList.hasOwnProperty(fileName)) {
-                apiFileList[fileName] = `export class ${fileName}{\r\n`;
+                apiFileList[fileName] = `export class ${fileName} {\r\n`;
             }
             if (!apiFileImportList.hasOwnProperty(fileName)) {
                 apiFileImportList[fileName] = [];
@@ -33,13 +33,27 @@ function apiCallerGen(swaggerData, outputDir) {
                     } else if (queryParameter.in === "query") {
                         queryParams.push(`${queryParameter.name}?:${datatype}`)
                     }
+
+                    var modelName = datatype.split('<').pop().split('>').shift();
+                    if (!isBasicType(modelName)) {
+                        if (!apiFileImportList[fileName].includes(modelName)) {
+                            apiFileImportList[fileName].push(modelName);
+                        }
+                    }
                 }
             }
 
             var requestDataStr = '';
+            var headersDataStr = '';
             if (elvalue.hasOwnProperty('requestBody')) {
                 var requestBody = elvalue.requestBody;
-                var dataType = getType(requestBody.content['application/json'].schema);
+                var dataType = 'any';
+                if (requestBody.content['application/json']) {
+                    dataType = getType(requestBody.content['application/json'].schema);
+                }
+                else if (requestBody.content['multipart/form-data']) {
+                    headersDataStr = `headers: { 'Content-Type': 'multipart/form-data' },`;
+                }
                 requestDataStr = `data:${dataType}`;
                 var modelName = dataType.split('<').pop().split('>').shift();
                 if (!isBasicType(modelName)) {
@@ -54,7 +68,7 @@ function apiCallerGen(swaggerData, outputDir) {
     /**
     * ${elvalue.summary ?? actionName}
     */
-    static async ${httpMethodItem}${actionName}(${pathQueries.length > 0 ? `${pathQueries.join(',')},` : ''} ${queryParams.length > 0 ? `query:{\r\n${queryParams.join(",\r\n")}\r\n},` : ''} ${requestDataStr ? `${requestDataStr},` : ''}`;
+    static async ${httpMethodItem}${actionName}(${pathQueries.length > 0 ? `${pathQueries.join(',')},` : ''} ${queryParams.length > 0 ? `query: {\r\n${queryParams.join(",\r\n")}\r\n},` : ''} ${requestDataStr ? `${requestDataStr},` : ''}`;
 
             if (functionString[functionString.length - 1] == ',') {
                 functionString = functionString.substring(0, functionString.length - 1);
@@ -67,7 +81,7 @@ function apiCallerGen(swaggerData, outputDir) {
 
                     if (responses['200'].hasOwnProperty('content') && responses['200'].content.hasOwnProperty('application/json')) {
                         var responseType = getType(responses['200'].content['application/json'].schema);
-                        functionString += `:Promise<${responseType}>{\r\n`;
+                        functionString += `: Promise<${responseType}> {\r\n`;
 
                         var modelName = responseType.split('<').pop().split('>').shift();
                         if (!isBasicType(modelName)) {
@@ -75,10 +89,14 @@ function apiCallerGen(swaggerData, outputDir) {
                                 apiFileImportList[fileName].push(modelName);
                             }
                         }
-                    }else {
-                        functionString += `:Promise<void>{\r\n`;
+                    } else {
+                        functionString += `: Promise<void> {\r\n`;
                     }
+                } else {
+                    functionString += `: Promise<void> {\r\n`;
                 }
+            } else {
+                functionString += `: Promise<void> {\r\n`;
             }
 
             functionString += `
@@ -87,6 +105,7 @@ function apiCallerGen(swaggerData, outputDir) {
         method: '${httpMethodItem}',
         ${queryParams.length > 0 ? 'params:query,' : ''}
         ${requestDataStr ? 'data:data,' : ''}
+        ${headersDataStr}
         });\r\n`;
             functionString += `    }\r\n`;
 
@@ -99,7 +118,7 @@ function apiCallerGen(swaggerData, outputDir) {
             continue;
         }
         if (apiFileImportList.hasOwnProperty(fileName) && apiFileImportList[fileName].length > 0) {
-            apiFileList[fileName] = `import { ${apiFileImportList[fileName].join(',')}} from './models/data-contracts'\r\n` + apiFileList[fileName];
+            apiFileList[fileName] = `import type { ${apiFileImportList[fileName].join(',')}} from './models/data-contracts'\r\n` + apiFileList[fileName];
         }
         apiFileList[fileName] = `import instance from "@/plugins/axios";\r\n` + apiFileList[fileName] + "}";
         fs.writeFileSync(`${outputDir}/${fileName}.ts`, apiFileList[fileName]);

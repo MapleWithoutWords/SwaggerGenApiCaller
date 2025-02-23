@@ -1,7 +1,7 @@
 function dataTypeConvert(dataType, format = null) {
-  // if (!dataType){
-  //   return { type: "any", defaultValue: null };
-  // }
+  if (!dataType){
+    return { type: "any", defaultValue: null };
+  }
   if (dataType == "integer") {
     if (format == "int64") {
       return { type: "string", defaultValue: "'0'" };
@@ -14,7 +14,7 @@ function dataTypeConvert(dataType, format = null) {
   if (dataType == "array") {
     return { type: "Array", defaultValue: "[]" };
   }
-  if (dataType.startsWith("Array<") ) {
+  if (dataType?.startsWith("Array<") ) {
     return { type: dataType, defaultValue: "[]" };
   }
   if (dataType == "boolean") {
